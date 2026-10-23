@@ -235,6 +235,16 @@ export default function App() {
   const handleTimeout = async () => {
     try {
       const res = await api.triggerTimeout();
+      if (res.status === "ELIMINATED" || res.tokens_remaining <= 0) {
+        setTeam(prev => prev ? {
+          ...prev,
+          tokens_remaining: 0,
+          status: "ELIMINATED"
+        } : prev);
+        setCurrentQuestion(null);
+        return;
+      }
+
       if (res.team) {
         setTeam(res.team);
       } else if (res.tokens_remaining !== undefined) {
@@ -243,16 +253,16 @@ export default function App() {
           tokens_remaining: res.tokens_remaining,
           current_level: res.current_level,
           total_score: res.total_score,
-          status: res.status === "ELIMINATED" ? "ELIMINATED" : prev.status
+          status: res.status || prev.status
         } : prev);
       }
+
       if (res.next_question) {
         setCurrentQuestion({
           ...res.next_question,
-          tokens: res.tokens_remaining ?? res.next_question.tokens ?? 0
+          tokens: res.tokens_remaining,
+          remaining_seconds: res.next_question.remaining_seconds ?? 900
         });
-      } else if (res.status === "ELIMINATED") {
-        setCurrentQuestion(null);
       }
     } catch (err) {
       console.error("Timeout trigger error:", err);

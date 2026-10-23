@@ -14,47 +14,69 @@ export default function GamePlayView({
   onTimeout,
   isSubmitting = false
 }) {
-  const [secondsRemaining, setSecondsRemaining] = useState(15 * 60);
-  const [maxSeconds, setMaxSeconds] = useState(15 * 60);
+  const [secondsRemaining, setSecondsRemaining] = useState(() => {
+    return currentQuestion?.remaining_seconds !== undefined
+      ? currentQuestion.remaining_seconds
+      : 15 * 60;
+  });
+  const [maxSeconds] = useState(15 * 60);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState("");
   const [showSaveBanner, setShowSaveBanner] = useState(false);
   const [feedbackToast, setFeedbackToast] = useState("");
 
+  const endTimeRef = useRef(null);
   const timerRef = useRef(null);
+  const lastLevelRef = useRef(team?.current_level);
+  const lastTokensRef = useRef(team?.tokens_remaining);
 
-  // Sync remaining seconds with backend state
+  // Continuous 15-minute countdown clock.
+  // When a question is wrong, the timer DOES NOT reset; it continues ticking towards 0.
+  // It only resets when:
+  // 1. Initial mount
+  // 2. Level changes (cleared level)
+  // 3. Tokens change (timer hit 0, 1 token reduced, new loop begins)
   useEffect(() => {
-    if (!currentQuestion) return;
+    const levelChanged = team?.current_level !== lastLevelRef.current;
+    const tokensChanged = team?.tokens_remaining !== lastTokensRef.current;
 
-    const remaining = currentQuestion.remaining_seconds !== undefined
-      ? currentQuestion.remaining_seconds
-      : 15 * 60;
+    if (endTimeRef.current === null || levelChanged || tokensChanged) {
+      lastLevelRef.current = team?.current_level;
+      lastTokensRef.current = team?.tokens_remaining;
 
-    setSecondsRemaining(remaining);
-    setMaxSeconds(15 * 60);
+      const initialSeconds = currentQuestion?.remaining_seconds !== undefined
+        ? currentQuestion.remaining_seconds
+        : 15 * 60;
+
+      setSecondsRemaining(initialSeconds);
+      endTimeRef.current = Date.now() + initialSeconds * 1000;
+    }
 
     if (timerRef.current) clearInterval(timerRef.current);
 
     timerRef.current = setInterval(() => {
-      setSecondsRemaining((prev) => {
-        const next = prev - 1;
-        if (next >= 1 && next <= 10) {
-          sounds.playTick(next, 10);
-        }
-        if (next <= 0) {
-          clearInterval(timerRef.current);
-          sounds.playGlitchBuzz();
-          onTimeout();
-          return 0;
-        }
-        return next;
-      });
+      if (!endTimeRef.current) return;
+
+      const now = Date.now();
+      const remaining = Math.max(0, Math.round((endTimeRef.current - now) / 1000));
+      setSecondsRemaining(remaining);
+
+      if (remaining >= 1 && remaining <= 10) {
+        sounds.playTick(remaining, 10);
+      }
+
+      if (remaining <= 0) {
+        clearInterval(timerRef.current);
+        endTimeRef.current = null;
+        sounds.playGlitchBuzz();
+        setFeedbackToast("⚠️ Time expired! 1 Life Token deducted. Rewinding loop...");
+        onTimeout();
+      }
     }, 1000);
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [currentQuestion?.id, currentQuestion?.question_number]);
+  }, [team?.current_level, team?.tokens_remaining]);
 
   const handleAnswerWrapper = async (answer) => {
     try {
