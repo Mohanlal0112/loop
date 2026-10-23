@@ -4,7 +4,8 @@ import confetti from "canvas-confetti";
 import CertificateModal from "../components/CertificateModal";
 import { Unlock, Trophy, Award, Sparkles } from "lucide-react";
 
-export default function EscapedView({ player, stats }) {
+export default function EscapedView({ player, team, stats }) {
+  const p = team || player || {};
   const [showCertificate, setShowCertificate] = useState(false);
 
   useEffect(() => {
@@ -17,15 +18,15 @@ export default function EscapedView({ player, stats }) {
     });
   }, []);
 
-  const escapedRank = stats?.topEscaped?.findIndex(e => e.usn === player.usn) + 1 || 1;
-  const isFinalist = escapedRank <= 3;
+  const escapedRank = p.final_rank || 1;
+  const isFinalist = p.is_finalist || p.level === 5 || escapedRank <= 3;
 
   return (
     <div className="min-h-[calc(100vh-80px)] flex items-center justify-center p-4">
       {/* Certificate Modal */}
       {showCertificate && (
         <CertificateModal
-          player={player}
+          player={p}
           rankTitle={isFinalist ? "TOP 3 FINALIST" : "TIME LOOP ESCAPEE"}
           rankPosition={escapedRank}
           onClose={() => setShowCertificate(false)}
@@ -49,22 +50,22 @@ export default function EscapedView({ player, stats }) {
         </h1>
 
         <p className="text-sm text-slate-600 dark:text-gray-300 font-sans max-w-md mx-auto mb-8">
-          Outstanding performance! You solved through all 4 levels and shattered the quantum barrier.
+          Outstanding performance! Your team solved all 4 levels and shattered the quantum loop.
         </p>
 
         {/* Telemetry Card */}
         <div className="glass-panel rounded-2xl p-6 text-left mb-6 font-mono text-xs border-green-300 dark:border-green-500/30">
           <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-temporal-border mb-3">
-            <span className="text-slate-500 dark:text-gray-400">FINISHER RANK:</span>
-            <span className="text-green-600 dark:text-green-300 font-bold text-sm">#{escapedRank} OVERALL</span>
+            <span className="text-slate-500 dark:text-gray-400">FINISHER STATUS:</span>
+            <span className="text-green-600 dark:text-green-300 font-bold text-sm">ESCAPED</span>
           </div>
           <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-temporal-border mb-3">
-            <span className="text-slate-500 dark:text-gray-400">PARTICIPANT:</span>
-            <span className="font-bold text-slate-900 dark:text-white">{player.name} ({player.usn})</span>
+            <span className="text-slate-500 dark:text-gray-400">TEAM:</span>
+            <span className="font-bold text-slate-900 dark:text-white">{p.team_name || p.name} ({p.team_id || p.usn})</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-slate-500 dark:text-gray-400">TOTAL SCORE ACCUMULATED:</span>
-            <span className="text-cyan-600 dark:text-cyan-400 font-bold">{player.score || 600} PTS</span>
+            <span className="text-cyan-600 dark:text-cyan-400 font-bold">{p.total_score || p.score || 0} PTS</span>
           </div>
         </div>
 

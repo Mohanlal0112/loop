@@ -2,13 +2,14 @@ import React, { useEffect } from "react";
 import { sounds } from "../audio/soundEngine";
 import { AlertOctagon, Sparkles, Clock } from "lucide-react";
 
-export default function EliminatedView({ player, wildCardData }) {
+export default function EliminatedView({ player, team, wildCardData }) {
+  const p = team || player || {};
   useEffect(() => {
     sounds.init();
     sounds.playElimination();
   }, []);
 
-  const isCandidate = wildCardData?.candidates?.some(c => c.usn === player.usn);
+  const isCandidate = wildCardData?.candidates?.some(c => c.usn === (p.usn || p.team_id));
 
   return (
     <div className="min-h-[calc(100vh-80px)] flex items-center justify-center p-4">
@@ -24,26 +25,26 @@ export default function EliminatedView({ player, wildCardData }) {
         </h1>
 
         <p className="text-base text-slate-700 dark:text-gray-300 font-mono mb-2">
-          You couldn't escape Level {player.level}.
+          Your team couldn't escape Level {p.level || 1}.
         </p>
 
         <p className="text-sm text-red-600 dark:text-red-400 font-mono uppercase tracking-widest mb-8 font-bold">
-          You have vanished from the event.
+          3 Timeouts Exceeded // Eliminated from Tournament
         </p>
 
         {/* Stats card */}
         <div className="glass-panel-danger rounded-2xl p-6 text-left mb-6 font-mono text-xs">
           <div className="flex items-center justify-between pb-3 border-b border-red-200 dark:border-red-900/60 mb-3">
-            <span className="text-slate-500 dark:text-gray-400">PARTICIPANT:</span>
-            <span className="font-bold text-slate-900 dark:text-white">{player.name} ({player.usn})</span>
+            <span className="text-slate-500 dark:text-gray-400">TEAM:</span>
+            <span className="font-bold text-slate-900 dark:text-white">{p.team_name || p.name} ({p.team_id || p.usn})</span>
           </div>
           <div className="flex items-center justify-between pb-3 border-b border-red-200 dark:border-red-900/60 mb-3">
             <span className="text-slate-500 dark:text-gray-400">FINAL LEVEL REACHED:</span>
-            <span className="text-red-600 dark:text-red-300 font-bold">Level {player.level}</span>
+            <span className="text-red-600 dark:text-red-300 font-bold">Level {p.level || 1}</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-slate-500 dark:text-gray-400">TOTAL ATTEMPTS FAILED:</span>
-            <span className="text-red-600 dark:text-red-400 font-bold">6 of 6 in Level {player.level}</span>
+            <span className="text-slate-500 dark:text-gray-400">TOKENS DEPLETED:</span>
+            <span className="text-red-600 dark:text-red-400 font-bold">3 of 3 in Level {p.level || 1}</span>
           </div>
         </div>
 

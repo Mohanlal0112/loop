@@ -3,7 +3,8 @@ import { Volume2, VolumeX, Sun, Moon, Clock, Terminal, Monitor, User, Lock, KeyR
 import { sounds } from "../audio/soundEngine";
 
 export default function Navbar({ 
-  player, 
+  player,
+  team,
   eventStatus, 
   currentRoute, 
   onNavigate,
@@ -11,6 +12,7 @@ export default function Navbar({
   onToggleTheme,
   onLogoutPlayer
 }) {
+  const currentIdentity = team || player;
   const [muted, setMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState("");
 
@@ -42,14 +44,14 @@ export default function Navbar({
           <div>
             <div className="flex items-center gap-2">
               <span className="font-extrabold tracking-wider text-slate-900 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-cyan-400 dark:via-purple-300 dark:to-cyan-200 font-mono text-lg">
-                TIME LOOP
+                LOOP
               </span>
               <span className="text-[10px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded bg-cyan-100 text-cyan-800 dark:bg-cyan-950/80 dark:text-cyan-400 border border-cyan-300 dark:border-cyan-800">
                 LIVE
               </span>
             </div>
             <p className="text-[10px] text-slate-500 dark:text-gray-400 font-mono hidden sm:block">
-              4 Levels • 6 Questions / Level • 15 Min / Level
+              Every Second Counts. Every Answer Saves the Timeline.
             </p>
           </div>
         </div>
@@ -65,48 +67,34 @@ export default function Navbar({
 
         {/* Right Action Icons & Navigation */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Quick Route Switchers - Hidden when participant is actively in the game */}
-          {(!player || player.status === "WAITING" || player.status === "ESCAPED") && (
-            <div className="flex items-center bg-slate-100 dark:bg-temporal-card p-1 rounded-lg border border-slate-200 dark:border-temporal-border text-xs">
-              <button
-                onClick={() => onNavigate("home")}
-                className={`px-2.5 py-1 rounded flex items-center gap-1.5 transition-colors ${
-                  currentRoute === "home" || currentRoute === "game"
-                    ? "bg-cyan-500 text-black font-semibold"
-                    : "text-slate-600 dark:text-gray-400 hover:text-black dark:hover:text-white"
-                }`}
-                title="Player View"
-              >
-                <User className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Player</span>
-              </button>
-              <button
-                onClick={() => onNavigate("host")}
-                className={`px-2.5 py-1 rounded flex items-center gap-1.5 transition-colors ${
-                  currentRoute === "host"
-                    ? "bg-purple-600 text-white font-semibold"
-                    : "text-slate-600 dark:text-gray-400 hover:text-black dark:hover:text-white"
-                }`}
-                title="Host Dashboard (PIN: 107)"
-              >
-                <Terminal className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Host</span>
-                <Lock className="w-2.5 h-2.5 opacity-70" />
-              </button>
-              <button
-                onClick={() => onNavigate("projector")}
-                className={`px-2.5 py-1 rounded flex items-center gap-1.5 transition-colors ${
-                  currentRoute === "projector"
-                    ? "bg-amber-500 text-black font-semibold"
-                    : "text-slate-600 dark:text-gray-400 hover:text-black dark:hover:text-white"
-                }`}
-                title="Auditorium Big Screen Display"
-              >
-                <Monitor className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Stage</span>
-              </button>
-            </div>
-          )}
+          {/* Quick Route Switchers */}
+          <div className="flex items-center bg-slate-100 dark:bg-temporal-card p-1 rounded-lg border border-slate-200 dark:border-temporal-border text-xs">
+            <button
+              onClick={() => onNavigate("home")}
+              className={`px-2.5 py-1 rounded flex items-center gap-1.5 transition-colors ${
+                currentRoute === "home" || currentRoute === "player"
+                  ? "bg-cyan-500 text-black font-semibold"
+                  : "text-slate-600 dark:text-gray-400 hover:text-black dark:hover:text-white"
+              }`}
+              title="Player View"
+            >
+              <User className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Player</span>
+            </button>
+            <button
+              onClick={() => onNavigate("organizer")}
+              className={`px-2.5 py-1 rounded flex items-center gap-1.5 transition-colors ${
+                currentRoute === "organizer" || currentRoute === "host"
+                  ? "bg-purple-600 text-white font-semibold"
+                  : "text-slate-600 dark:text-gray-400 hover:text-black dark:hover:text-white"
+              }`}
+              title="Organizer Command"
+            >
+              <Terminal className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Organizer</span>
+              <Lock className="w-2.5 h-2.5 opacity-70" />
+            </button>
+          </div>
 
           {/* Theme Toggle (Sun / Moon) */}
           <button
@@ -118,18 +106,18 @@ export default function Navbar({
           </button>
 
           {/* Player Mini Badge if logged in */}
-          {player && (
+          {currentIdentity && (
             <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-temporal-border">
-              <span className="text-lg">{player.avatar || "⚡"}</span>
+              <span className="text-lg">{currentIdentity.avatar || "⚡"}</span>
               <div className="text-left">
-                <div className="text-xs font-bold text-slate-800 dark:text-gray-200 leading-tight">{player.name}</div>
-                <div className="text-[10px] text-cyan-600 dark:text-cyan-400 font-mono">{player.usn}</div>
+                <div className="text-xs font-bold text-slate-800 dark:text-gray-200 leading-tight">{currentIdentity.team_name || currentIdentity.name}</div>
+                <div className="text-[10px] text-cyan-600 dark:text-cyan-400 font-mono">{currentIdentity.team_id || currentIdentity.usn}</div>
               </div>
-              {onLogoutPlayer && (!player.status || player.status === "WAITING" || player.status === "ESCAPED" || player.status === "ELIMINATED") && (
+              {onLogoutPlayer && (
                 <button
                   onClick={onLogoutPlayer}
                   className="p-1.5 ml-1 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
-                  title="Switch / Change Participant"
+                  title="Switch / Logout"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                 </button>
