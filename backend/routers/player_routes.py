@@ -56,7 +56,8 @@ def get_player_state(
             "total_score": team.total_score,
             "is_qualified": team.is_qualified
         },
-        "active_question": active_question
+        "active_question": active_question,
+        "current_question": active_question
     }
 
 @router.post("/submit-answer", response_model=AnswerSubmitResponse)

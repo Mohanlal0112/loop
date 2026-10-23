@@ -111,14 +111,17 @@ export default function App() {
       if (state.team) {
         setTeam(state.team);
       }
-      if (state.current_question) {
+      const q = state.current_question || state.active_question;
+      if (q) {
         setCurrentQuestion({
-          ...state.current_question,
-          remaining_seconds: state.remaining_seconds,
-          tokens: state.tokens,
-          question_number: state.question_number,
-          total_questions: state.total_questions
+          ...q,
+          remaining_seconds: q.remaining_seconds !== undefined ? q.remaining_seconds : 900,
+          tokens: state.team?.tokens_remaining ?? q.tokens ?? 3,
+          question_number: q.question_number || 1,
+          total_questions: q.total_questions || 6
         });
+      } else {
+        setCurrentQuestion(null);
       }
     } catch {
       // Ignore if unauthenticated or lobby
@@ -203,14 +206,19 @@ export default function App() {
       const res = await api.submitAnswer(answer);
       if (res.team) {
         setTeam(res.team);
+      } else if (res.tokens_remaining !== undefined) {
+        setTeam(prev => prev ? {
+          ...prev,
+          tokens_remaining: res.tokens_remaining,
+          current_level: res.current_level,
+          total_score: res.total_score,
+          status: res.status === "ESCAPED" ? "ESCAPED" : res.status === "ELIMINATED" ? "ELIMINATED" : prev.status
+        } : prev);
       }
       if (res.next_question) {
         setCurrentQuestion({
           ...res.next_question,
-          remaining_seconds: res.remaining_seconds,
-          tokens: res.tokens,
-          question_number: res.question_number,
-          total_questions: res.total_questions
+          tokens: res.tokens_remaining ?? res.next_question.tokens ?? 3
         });
       } else if (res.status === "ESCAPED" || res.status === "ELIMINATED") {
         setCurrentQuestion(null);
@@ -229,14 +237,19 @@ export default function App() {
       const res = await api.triggerTimeout();
       if (res.team) {
         setTeam(res.team);
+      } else if (res.tokens_remaining !== undefined) {
+        setTeam(prev => prev ? {
+          ...prev,
+          tokens_remaining: res.tokens_remaining,
+          current_level: res.current_level,
+          total_score: res.total_score,
+          status: res.status === "ELIMINATED" ? "ELIMINATED" : prev.status
+        } : prev);
       }
       if (res.next_question) {
         setCurrentQuestion({
           ...res.next_question,
-          remaining_seconds: res.remaining_seconds,
-          tokens: res.tokens,
-          question_number: res.question_number,
-          total_questions: res.total_questions
+          tokens: res.tokens_remaining ?? res.next_question.tokens ?? 0
         });
       } else if (res.status === "ELIMINATED") {
         setCurrentQuestion(null);
