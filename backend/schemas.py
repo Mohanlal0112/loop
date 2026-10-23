@@ -27,6 +27,18 @@ class TeamLoginRequest(BaseModel):
     team_id: str
     password: str
 
+class TeamUpdateRequest(BaseModel):
+    team_name: Optional[str] = None
+    new_password: Optional[str] = None
+    is_active: Optional[bool] = None
+    department: Optional[str] = None
+    avatar: Optional[str] = None
+    status: Optional[str] = None
+    current_level: Optional[int] = None
+    tokens_remaining: Optional[int] = None
+    total_score: Optional[float] = None
+    is_qualified: Optional[bool] = None
+
 class TeamResponse(BaseModel):
     id: int
     team_id: str

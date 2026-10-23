@@ -42,10 +42,10 @@ app.include_router(websocket_routes.router)
 
 @app.on_event("startup")
 def on_startup():
-    print("🚀 Initializing LOOP platform database...")
+    print("[INFO] Initializing LOOP platform database...")
     Base.metadata.create_all(bind=engine)
     seed_database()
-    print("✅ LOOP Backend successfully initialized and ready!")
+    print("[OK] LOOP Backend successfully initialized and ready!")
 
 @app.get("/api/health")
 def health_check():

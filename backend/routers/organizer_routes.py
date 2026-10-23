@@ -12,7 +12,7 @@ from backend.models import Organizer, EventSettings, Team, Question, TeamLevelSt
 from backend.schemas import (
     EventSettingsResponse, EventSettingsUpdate,
     QuestionCreate, QuestionUpdate, QuestionResponse,
-    TeamResponse
+    TeamResponse, TeamUpdateRequest
 )
 from backend.auth import get_current_organizer, hash_password
 from backend.routers.websocket_routes import ws_manager
@@ -736,11 +736,7 @@ def create_team_manually(
 @router.put("/teams/{team_id}")
 def update_team(
     team_id: str,
-    team_name: Optional[str] = None,
-    new_password: Optional[str] = None,
-    is_active: Optional[bool] = None,
-    department: Optional[str] = None,
-    avatar: Optional[str] = None,
+    payload: TeamUpdateRequest,
     org: Organizer = Depends(get_current_organizer),
     db: Session = Depends(get_db)
 ):
@@ -748,19 +744,30 @@ def update_team(
     if not team:
         raise HTTPException(status_code=404, detail="Team not found.")
 
-    if team_name:
-        team.team_name = team_name.strip()
-    if new_password and new_password.strip():
-        team.password_hash = hash_password(new_password.strip())
-    if is_active is not None:
-        team.is_active = is_active
-    if department:
-        team.department = department.strip()
-    if avatar:
-        team.avatar = avatar
+    if payload.team_name:
+        team.team_name = payload.team_name.strip()
+    if payload.new_password and payload.new_password.strip():
+        team.password_hash = hash_password(payload.new_password.strip())
+    if payload.is_active is not None:
+        team.is_active = payload.is_active
+    if payload.department:
+        team.department = payload.department.strip()
+    if payload.avatar:
+        team.avatar = payload.avatar
+    if payload.status:
+        team.status = payload.status
+    if payload.current_level is not None:
+        team.current_level = payload.current_level
+    if payload.tokens_remaining is not None:
+        team.tokens_remaining = payload.tokens_remaining
+    if payload.total_score is not None:
+        team.total_score = payload.total_score
+    if payload.is_qualified is not None:
+        team.is_qualified = payload.is_qualified
 
     db.commit()
-    return {"success": True, "message": f"Team {team_id} updated successfully."}
+    db.refresh(team)
+    return {"success": True, "message": f"Team {team_id} updated successfully.", "team": TeamResponse.from_orm(team).dict()}
 
 @router.delete("/teams/{team_id}")
 def delete_team(

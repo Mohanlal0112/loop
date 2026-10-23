@@ -3,7 +3,7 @@ import {
   Terminal, Play, Pause, RotateCcw, Download, Upload, Plus, Trash2, Edit3,
   Copy, Eye, Search, Filter, ShieldCheck, Trophy, Settings, Users,
   BookOpen, HelpCircle, AlertCircle, Save, Check, RefreshCw, KeyRound,
-  FileSpreadsheet, Lock, LogOut, Sliders
+  FileSpreadsheet, Lock, LogOut, Sliders, X
 } from "lucide-react";
 import { api } from "../services/api";
 import StartGameModal from "../components/StartGameModal";
@@ -15,6 +15,19 @@ const CATEGORIES = [
   "Python Coding",
   "Debugging",
   "DSA Concept MCQs"
+];
+
+const AVATARS = ["⚡", "⏳", "🌀", "🔥", "🔮", "🚀", "🪐", "💎", "👾", "🤖"];
+const DEPARTMENTS = [
+  "Computer Science & Engg",
+  "Information Science",
+  "Artificial Intelligence & ML",
+  "Electronics & Communication",
+  "Data Science & Cybersecurity",
+  "Mechanical Engineering",
+  "Civil Engineering",
+  "Electrical & Electronics",
+  "Other"
 ];
 
 export default function OrganizerDashboardView({ onLogout }) {
@@ -46,6 +59,11 @@ export default function OrganizerDashboardView({ onLogout }) {
   // Organizer password change
   const [passForm, setPassForm] = useState({ current_password: "", new_password: "", confirm_password: "" });
   const [passMsg, setPassMsg] = useState("");
+
+  // Team Edit Modal State
+  const [editingTeam, setEditingTeam] = useState(null);
+  const [isSavingTeam, setIsSavingTeam] = useState(false);
+  const [teamSaveError, setTeamSaveError] = useState("");
 
   // Initial data load
   useEffect(() => {
@@ -246,6 +264,21 @@ export default function OrganizerDashboardView({ onLogout }) {
       setTimeout(() => setPassMsg(""), 3000);
     } catch (err) {
       setPassMsg("Error: " + err.message);
+    }
+  };
+
+  // --- Team Update Handler ---
+  const handleSaveTeam = async (teamData) => {
+    setIsSavingTeam(true);
+    setTeamSaveError("");
+    try {
+      await api.updateTeam(teamData.team_id, teamData);
+      setEditingTeam(null);
+      await loadAllData();
+    } catch (err) {
+      setTeamSaveError(err.message || "Failed to update team settings.");
+    } finally {
+      setIsSavingTeam(false);
     }
   };
 
@@ -733,12 +766,12 @@ export default function OrganizerDashboardView({ onLogout }) {
                   </button>
 
                   <button
-                    onClick={async () => {
-                      await api.updateTeam(t.team_id, { is_active: !t.is_active });
-                      loadAllData();
+                    onClick={() => {
+                      setEditingTeam({ ...t, new_password: "" });
+                      setTeamSaveError("");
                     }}
-                    className="p-2 rounded-xl border border-gray-800 hover:bg-gray-800 text-amber-400"
-                    title={t.is_active ? "Disable Team" : "Enable Team"}
+                    className="p-2 rounded-xl border border-gray-800 hover:bg-amber-950/60 text-amber-400 hover:text-amber-300 transition-colors"
+                    title="Edit Team Settings & Progress"
                   >
                     <Settings className="w-3.5 h-3.5" />
                   </button>
@@ -985,6 +1018,210 @@ export default function OrganizerDashboardView({ onLogout }) {
           </div>
         </div>
       )}
+
+      {/* Team Settings / Edit Modal */}
+      {editingTeam && (
+        <TeamEditModal
+          team={editingTeam}
+          onSave={handleSaveTeam}
+          onClose={() => setEditingTeam(null)}
+          isSaving={isSavingTeam}
+          errorMsg={teamSaveError}
+        />
+      )}
+    </div>
+  );
+}
+
+// Modal Form for editing team settings and tournament progress
+function TeamEditModal({ team, onSave, onClose, isSaving, errorMsg }) {
+  const [formData, setFormData] = useState({
+    team_id: team?.team_id || "",
+    team_name: team?.team_name || "",
+    avatar: team?.avatar || "⚡",
+    department: team?.department || DEPARTMENTS[0],
+    status: team?.status || "WAITING",
+    is_active: team?.is_active !== undefined ? team.is_active : true,
+    current_level: team?.current_level || 1,
+    tokens_remaining: team?.tokens_remaining !== undefined ? team.tokens_remaining : 3,
+    total_score: team?.total_score || 0,
+    new_password: ""
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSave(formData);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl">
+      <div className="max-w-xl w-full glass-panel-glow rounded-3xl p-6 sm:p-8 border border-amber-500/50 shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between pb-3 border-b border-gray-800 mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500 flex items-center justify-center text-xl">
+              {formData.avatar}
+            </div>
+            <div>
+              <h3 className="text-lg font-mono font-bold text-white">EDIT TEAM: {formData.team_name}</h3>
+              <p className="text-[11px] text-gray-400 font-mono">ID: {formData.team_id}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-gray-800">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {errorMsg && (
+          <div className="p-3 mb-4 rounded-xl bg-red-950/80 border border-red-500 text-red-300 font-mono text-xs">
+            {errorMsg}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4 text-xs font-mono">
+          <div>
+            <label className="block text-gray-400 uppercase mb-1">Team Name</label>
+            <input
+              type="text"
+              required
+              value={formData.team_name}
+              onChange={(e) => setFormData({ ...formData, team_name: e.target.value })}
+              className="w-full px-3 py-2 rounded-xl bg-black border border-gray-700 text-white font-bold"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-gray-400 uppercase mb-1">Department</label>
+              <select
+                value={formData.department}
+                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                className="w-full px-3 py-2 rounded-xl bg-black border border-gray-700 text-white"
+              >
+                {DEPARTMENTS.map(d => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-gray-400 uppercase mb-1">Tournament Status</label>
+              <select
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                className="w-full px-3 py-2 rounded-xl bg-black border border-gray-700 text-amber-300 font-bold"
+              >
+                <option value="WAITING">WAITING (Lobby)</option>
+                <option value="ACTIVE">ACTIVE (In Game)</option>
+                <option value="PAUSED">PAUSED</option>
+                <option value="ESCAPED">ESCAPED (Cleared Level 4)</option>
+                <option value="ELIMINATED">ELIMINATED</option>
+                <option value="QUALIFIED_FINAL">QUALIFIED_FINAL (Top 3)</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Avatar Selector */}
+          <div>
+            <label className="block text-gray-400 uppercase mb-1">Team Avatar</label>
+            <div className="flex flex-wrap gap-2">
+              {AVATARS.map(av => (
+                <button
+                  key={av}
+                  type="button"
+                  onClick={() => setFormData({ ...formData, avatar: av })}
+                  className={`w-9 h-9 rounded-xl border text-lg flex items-center justify-center transition-all ${
+                    formData.avatar === av
+                      ? "border-cyan-400 bg-cyan-950/60 scale-110 shadow-lg shadow-cyan-500/30"
+                      : "border-gray-800 bg-black/40 hover:border-gray-600"
+                  }`}
+                >
+                  {av}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Progress Controls: Level, Tokens, Score */}
+          <div className="grid grid-cols-3 gap-3 pt-2">
+            <div>
+              <label className="block text-gray-400 uppercase mb-1">Level (1-5)</label>
+              <input
+                type="number"
+                min="1"
+                max="5"
+                value={formData.current_level}
+                onChange={(e) => setFormData({ ...formData, current_level: parseInt(e.target.value, 10) || 1 })}
+                className="w-full px-3 py-2 rounded-xl bg-black border border-gray-700 text-white font-bold text-center"
+              />
+            </div>
+            <div>
+              <label className="block text-gray-400 uppercase mb-1">Tokens (0-3)</label>
+              <input
+                type="number"
+                min="0"
+                max="3"
+                value={formData.tokens_remaining}
+                onChange={(e) => setFormData({ ...formData, tokens_remaining: parseInt(e.target.value, 10) || 0 })}
+                className="w-full px-3 py-2 rounded-xl bg-black border border-gray-700 text-cyan-300 font-bold text-center"
+              />
+            </div>
+            <div>
+              <label className="block text-gray-400 uppercase mb-1">Total Score</label>
+              <input
+                type="number"
+                step="0.1"
+                value={formData.total_score}
+                onChange={(e) => setFormData({ ...formData, total_score: parseFloat(e.target.value) || 0 })}
+                className="w-full px-3 py-2 rounded-xl bg-black border border-gray-700 text-green-300 font-bold text-center"
+              />
+            </div>
+          </div>
+
+          {/* Active status & New password */}
+          <div className="pt-2 border-t border-gray-800 space-y-3">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.is_active}
+                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                className="w-4 h-4 rounded text-cyan-500"
+              />
+              <span className="text-white font-bold">Team Account Active (Can log in & play)</span>
+            </label>
+
+            <div>
+              <label className="block text-gray-400 uppercase mb-1">Reset Password (Leave blank to keep unchanged)</label>
+              <input
+                type="text"
+                placeholder="Enter new password if changing..."
+                value={formData.new_password}
+                onChange={(e) => setFormData({ ...formData, new_password: e.target.value })}
+                className="w-full px-3 py-2 rounded-xl bg-black border border-gray-700 text-white font-mono"
+              />
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex gap-3 pt-3">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isSaving}
+              className="flex-1 py-3 rounded-xl border border-gray-700 bg-gray-800 text-gray-300 font-bold"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="flex-1 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold shadow-lg flex items-center justify-center gap-2"
+            >
+              <Save className="w-4 h-4" />
+              <span>{isSaving ? "Saving..." : "Save Team Changes"}</span>
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
